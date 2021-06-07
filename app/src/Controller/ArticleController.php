@@ -12,6 +12,10 @@ class ArticleController extends AbstractController
      */
     public function index()
     {
-        return $this->render('articles/index.html.twig');
+        $articles = ['Article 1', 'Article 2'];
+
+        return $this->render('articles/index.html.twig', [
+            'articles' => $articles
+        ]);
     }
 }
