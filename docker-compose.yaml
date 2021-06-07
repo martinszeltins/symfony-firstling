@@ -1,0 +1,62 @@
+version: '3.7'
+services:
+
+  # Nginx server
+  symfony-firstling-nginx-server:
+    container_name: symfony-firstling-nginx-server
+    image: nginx:1.19-alpine
+    restart: always
+    ports:
+      - 39698:80
+    volumes:
+      - ./app:/var/www
+      - ./docker/nginx-server/etc/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+    - symfony-firstling-php-server
+    - symfony-firstling-mysql-server
+    networks:
+      - app-network
+
+
+  # PHP server
+  symfony-firstling-php-server:
+    build:
+      context: .        # (!) Dockerfile doesn't see anything outside of this context
+      dockerfile: ./docker/php-server/Dockerfile
+    container_name: symfony-firstling-php-server
+    restart: always
+    tty: true
+    environment:
+      SERVICE_NAME: php
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    volumes:
+      - ./app:/var/www
+      - ./docker/php-server/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - /var/www/vendor       # We need this volume so that it won't be overwritten by our bind mount. Since vendor on the host is empty, the bind will map an empty directory to the container, overriding the new vendor directory and preventing our application from starting. The named vendor volume solves this problem by persisting the contents of the vendor directory and mounting it to the container, hiding the bind.
+    networks:
+      - app-network
+    depends_on:
+      - symfony-firstling-mysql-server
+
+
+  # MySQL server
+  symfony-firstling-mysql-server:
+    image: mysql:8.0
+    container_name: symfony-firstling-mysql-server
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    tty: true
+    ports:
+      - "18803:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: a7first_ling99_
+      MYSQL_DATABASE: symfony_firstling
+    networks:
+      - app-network
+
+
+# Networks
+networks:
+  app-network:
+    driver: bridge
